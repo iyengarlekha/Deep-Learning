@@ -1,0 +1,184 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{DS-GA 1008: Deep Learning, Spring 2019
+Homework Assignment 1}
+\author{Lekha Iyengar}
+\date{February 2019}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+
+\maketitle
+
+\section{Backprop}
+
+\subsection{Warm-up}
+
+\[
+y = Wx + b
+\]
+$\frac{\partial L}{\partial W} = ?$ and  $\frac{\partial L}{\partial b} = ?$ \\ 
+L is a function of $y$ and y is a function of W
+We use chain rule to compute the derivative of L with respect to W:\\
+\[ 
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial y} . \frac{\partial y}{\partial W} 
+\]
+\[
+y_i = \sum_{j = 1}^{N} W_{i,j} x_j + b_i 
+\]
+\[
+\frac{\partial L}{\partial y} = \left[ \frac{\partial L}{\partial y_1}, \frac{\partial L}{\partial y_2}, ... \frac{\partial L}{\partial y_T} \right]
+\]
+The derivative of ${y_i}$ w.r.t each element in W is ${x_j}$ when the element is in row i and 0 otherwise
+If we split the index of W to i and j we get
+
+\[D_{i,j} y_t = \frac{\partial(\sum_{j=1}^{N} (W_{t,j} x_j +b_t))}{\partial W_{i,j}}\] 
+
+\[
+D_{i,j} y_t = \begin{cases}
+  x_j & i=t\\    
+  0 & i \neq t
+\end{cases} 
+\]
+
+Overall we get the Jacobian matrix
+\[
+Dy
+= 
+\left[
+\begin{tabular}{cccccccc}
+x_1  &x_2 &... &x_N &... &0 &0 &... 0\\
+0 &x_1 &... &x_{N-1} &... &0 &0 &... 0\\
+. &. &&. &&.\\
+. &&.&&.&&.\\ 
+. &&&.&&.&&.\\
+0 &0 &... &0 &x1 &x2 &... &x_N
+\end{tabular}
+\right]
+\]
+% \[
+% \frac{\partial y_1}{\partial W} = x_1, 
+% \frac{\partial y_2}{\partial W} = x_2, ... 
+% \frac{\partial y_T}{\partial W} = x_T
+% \]
+\[
+\frac{\partial L}{\partial W} 
+= 
+\left[ 
+\begin{tabular}{cccc}
+x_1 \frac{\partial L}{\partial y_1} & x_2 \frac{\partial L}{\partial y_1} & ... & x_T \frac{\partial L}{\partial y_1} \\ x_1 \frac{\partial L}{\partial y_2} & x_2 \frac{\partial L}{\partial y_2} & ... & x_T \frac{\partial L}{\partial y_2} \\ .&&&\\ .&&&\\ .&&&\\ x_1 \frac{\partial L}{\partial y_T} & x_2 \frac{\partial L}{\partial y_T} & ... & x_T \frac{\partial L} {\partial y_T}
+\end{tabular}
+\right]
+\]
+
+\[
+= \frac{\partial L}{\partial y} \otimes x
+\]
+
+\[
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial y}  X^T
+\]
+
+\\
+\\
+\[
+\frac{\partial L}{\partial b} = \frac{\partial L}{\partial y} \frac{\partial y}{\partial b}
+\]
+
+\[
+y_i = \sum_{j = 1}^{N} W_{i,j} x_j + b_i 
+\]
+
+\[
+\frac{\partial y_i}{\partial b_j} = \begin{cases}
+  0 & i=j\\    
+  1 & i \neq j    
+\end{cases} 
+\]
+Dy(b) is an identity matrix with dimension(T,T)
+\[
+\frac{\partial L}{\partial b} = \frac{\partial L}{\partial y}
+\]
+% \[ 
+% \frac{\partial L}{\partial b} = \sum_{b-1}^{B} \frac{\partial L}{\partial y_j^{[b]}}
+% \]
+
+% which means adding gradient from every batch independently. 
+
+
+\subsection{Softmax}
+
+\[
+y_j = \frac{e^{\beta x_j}}{\sum_{i}e^{\beta x_i}}
+\]
+
+\[
+\frac{\partial y_j}{\partial x_i} = \frac {\partial \frac{e^{\beta x_j}}{\sum_{i}e^{\beta x_i}}} 
+{\partial x_i}
+\]
+
+From quotient rule for $f(x) = \frac{g(x)}{h(x)}$ 
+
+
+$f^\prime(x) =\frac{g^\prime(x) h(x) - g(x) h^\prime(x)}{h^2(x)}$ where $ g(x) = e^{\beta x_j} $ and $h(x) = \sum_{i} e^{\beta x_i}$
+
+
+$h^\prime(x)$ will always be $\beta e^{\beta x_i} $ as it will always have $e^{\beta x_i}$ term. $g^\prime(x)$ will be $\beta e^{\beta x_i} $ only if $i=j$ otherwise 0.
+
+if $i=j$,
+
+\[
+\frac{\partial y_j}{\partial x_i} = \frac {\partial \frac{e^{\beta x_j}}{\sum_{i}e^{\beta x_i}}}{\partial x_i}
+\]
+
+\[
+= \frac{\beta e^{\beta x_j} \sum_i e^{\beta x_i} - \beta e^{\beta x_i} e^{\beta x_j} }{ ( \sum_i e^{\beta x_i} ) ^2}
+\]
+
+\[
+= \frac{\beta e^{\beta x_j}}{\sum_i e^{\beta x_i}} \frac{(\sum_i e^{\beta x_i} - e^{\beta x_i})}{\sum_i e^{\beta x_i}}
+\]
+
+\[
+= \beta y_i ( 1- \frac{e^{\beta x_i}}{\sum_i e^{\beta x_i}})
+\]
+
+\[
+= \beta y_i ( 1- \frac{e^{\beta x_j}}{\sum_i e^{\beta x_i}})
+\]
+
+\[
+= \beta y_i (1 - y_j)
+\]
+
+if $i\neq j$,
+
+\[
+\frac{\partial y_j}{\partial x_i} = \frac{0 - \beta e^{\beta x_i} e^{\beta x_j}}{(\sum_i e^{\beta x_i})^2}
+\]
+
+\[
+= - \beta \frac{e^{\beta x_i}}{\sum_i e^{\beta x_i}} \frac{e^{\beta x_j}} {\sum_i e^{\beta x_i}}
+\]
+
+\[
+= -\beta y_i y_j
+\]
+
+Using Kronecker delta 
+\[
+\delta_{ij} = \begin{cases}
+  1 & i=j\\    
+  0 & i \neq j
+\end{cases} 
+\]
+
+\[
+\frac{\partial y_j}{\partial x_i} = \beta y_i (\delta_{ij} - y_j)
+\]
+
+\end{document}
