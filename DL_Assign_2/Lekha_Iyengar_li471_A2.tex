@@ -1,0 +1,277 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{DS-GA 1008: Deep Learning, Spring 2019
+Homework Assignment 2}
+\author{Lekha Iyengar}
+\date{February 2019}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problem 1.1 - Convolution}
+
+\subsection*{Part A}
+
+What is the dimensionality of the output if we forward propagate the image over the given convolution with no padding and a stride of 1?
+
+\begin{itemize}
+    \item Padding P = 0
+    \item Stride s = 1
+    \item Kernel Width k = 3
+    \item Kernel Height = 3
+    \item Input Width I = 5
+    \item Input Height = 5
+\end{itemize}
+
+\[
+Output width = (\left \lfloor\frac{I + 2P - K }{S} \right \rfloor + 1)
+\]
+\[
+Output width = (\left \lfloor\frac{5 + 0 - 3 }{1} \right \rfloor + 1)
+\]
+\[
+Output width = 3
+\]
+\[Output Height = Output width = 3\]
+
+Output dimension is 3*3. 
+
+\subsection*{Part B}
+General formula for output width O.
+
+\begin{itemize}
+    \item Input width I 
+    \item Kernel width K 
+    \item Padding P 
+\end{itemize}
+
+\[
+O = (\left \lfloor\frac{I + 2P - K }{S} \right \rfloor + 1)
+\]
+
+\subsection*{Part C}
+
+Output C. Bias term of convolution is 0.
+\[
+\matr{A} =  \begin{tabular}{|c|c|c|c|c|} 
+    \hline
+       4 & 5 & 2 & 2 & 1 \\ \hline 
+       3 & 3 & 2 & 2 & 4 \\ \hline
+       4 & 3 & 4 & 1 & 1 \\ \hline 
+       5 & 1 & 4 & 1 & 2 \\ \hline
+       5 & 1 & 3 & 1 & 4 \\ \hline
+    \end{tabular}
+\]
+
+\[
+\matr{B} = \begin{tabular}{|c|c|c|} 
+    \hline
+       4 & 3 & 3 \\ \hline 
+       5 & 5 & 5 \\ \hline
+       2 & 4 & 3 \\ \hline 
+    \end{tabular}
+\]
+
+\[
+\matr{C} =  \begin{tabular}{|c|c|c|} 
+    \hline
+       109 & 92 & 72 \\ \hline 
+       108 & 85 & 74 \\ \hline
+       110 & 74 & 79 \\ \hline 
+    \end{tabular}
+\]
+\subsection*{Part D} 
+
+Gradient back-propagated from layer above is, 
+
+\[
+D =
+\left[
+\begin{tabular}{ccc}
+1 & 1 & 1 \\
+1 & 1 & 1 \\
+1 & 1 & 1 \\
+\end{tabular}
+\right]
+\]
+
+Gradient (w.r.t) input image back propagated out of this layer 
+We get this by doing a full convolution of the Kernel rotated 180 degrees with the gradient back-propagated from layer above
+The rotated kernel K is \\
+\[
+\matr{K} = \begin{tabular}{|c|c|c|} 
+    \hline
+       3 & 4 & 2 \\ \hline 
+       5 & 5 & 5 \\ \hline
+       3 & 3 & 4 \\ \hline 
+    \end{tabular}\\
+\]
+
+Full convolution of K with D gives us 
+\[ G =
+\left[
+\begin{tabular}{ccccc}
+4 & 7 & 10 & 6 & 3 \\
+9 & 17 & 25 & 16 & 8 \\
+11 & 23 & 34 & 23 & 11\\
+7 & 16 & 24 & 17 & 8\\
+2 & 6 & 9 & 7 & 3\\
+\end{tabular}
+\right]
+\]
+
+\section*{Problem 1.2 - Pooling}
+\subsection*{Part A}
+List torch.nn modules for 2d versions of these pooling techniques and read on they do. 
+
+\begin{enumerate}
+    
+    \item Avg Pool2d \\
+
+    This is the 2D  module in torch.nn for average pooling. It applies 2D average pooling over an input signal comprised of several input planes. 
+    The parameters are kernel\_size, stride, padding, ceil\_mode, and count\_include\_pad. 
+    If the input has dimension (N, C, $H_{in}$, $W_{in}$) and the dimension of output is (N, C, $H_{out}$, $W_{out}$) then,  
+    
+    \[
+    H_{out} = \left \lfloor{
+    \frac{H_{in} + 2 * padding[0] - kernel\_size[0]}{stride[0]} + 1}\right \rfloor
+    \]
+    
+    \[
+    W_{out} = \left \lfloor{
+    \frac{W_{in} + 2 * padding[1] - kernel\_size[1]}{stride[1]} + 1}\right \rfloor
+    \]
+    
+    ceil\_mode - When set to True, it uses ceiling instead of floor to compute $H_{out}$ and $W_{out}$. The default value is False. 
+    
+    count\_include\_pad - When set to True it includes zero padding in averaging calculations. Default value is True. 
+
+    \item MaxPool2D \\
+
+    This is a torch.nn module for max pooling. It applies 2D max pooling over an input signal composed of several input planes. 
+    The parameters are kernel\_size, stride, padding, dilation, return\_indices and ceil\_mode. 
+    If the input has dimension (N, C, $H_{in}$, $W_{in}$) and the dimension of output is (N, C, $H_{out}$, $W_{out}$) then,  
+    
+    \[
+    H_{out} = \left \lfloor{ 
+    \frac{H_{in} + 2 * padding[0] - dilation[0] * (kernel\_size[0] -1) -1}{stride[0]}} + 1 \right \rfloor
+    \]
+    
+    \[
+    W_{out} = \left \lfloor{  
+    \frac{W_{in} + 2 * padding[1] - dilation[1] * (kernel\_size[1] -1) -1}{stride[1]}} + 1 \right \rfloor 
+    \]
+    
+    dilation controls the spacing between kernel points. It controls the stride of elements in the window. 
+    
+    
+    return\_indices - If this parameter is set to True, it returns max indices along with output. It is useful for unpooling. 
+    
+
+    \item LPPool2D \\
+    
+    This is the torch.nn module for LP Pooling, it applies 2D power averaging over an input signal of several input planes. 
+    The parameters are norm\_type, kernel\_size, stride, and ceil\_mode. 
+    The power average function is computed as, 
+    
+    \[
+    f(x) = \sqrt[P]{\sum_{x\in X}{x^p}}
+    \]
+    
+    If the input has dimension (N, C, $H_{in}$, $W_{in}$) and the dimension of output is (N, C, $H_{out}$, $W_{out}$) then,  
+    
+    \[
+    H_{out} = \left \lfloor{ 
+    \frac{H_{in} + 2 * padding[0] - dilation[0] * (kernel\_size[0] -1) -1}{stride[0]}} + 1 \right \rfloor
+    \]
+    
+    \[
+    W_{out} = \left \lfloor{  
+    \frac{W_{in} + 2 * padding[1] - dilation[1] * (kernel\_size[1] -1) -1}{stride[1]}} + 1 \right \rfloor 
+    \]
+    
+    ceil\_mode - When set to true it uses ceiling instead of floor to compute $H_{out}$ and $W_{out}$.
+
+\end{enumerate}
+
+\subsection*{Part B}
+
+$X^k$ is $k^{th}$ input feature.
+$X^k \in R^{H_{in} * W_{in}}$, where $H_{in}$ and $w_{in}$ are input height and width respectively. 
+$Y^k$ is $k^{th}$ output feature $Y^k \in R^{H_{out} * W_{out}}$ where $H_{out}$ and $W_{out}$ are output height and width respectively.
+$S_{ij}^k$ is list of indices of elements in subregion of $X^k$ used for generating $Y_{ij}^k$ the $(i,j)^{th}$ entry of $Y^k$.
+
+\begin{enumerate}
+    \item Max pool 
+
+    \[
+    Y_{ij}^k = max(X^k[s]) \  \forall \  s \in S_{ij}^k
+    \]
+
+    \item Avg pool 
+
+    \[
+    Y_{ij}^k = \frac{\sum_{s \in S{ij}^k} X^k[s]}{\mid S_{i,j}^{k} \mid}
+    \]
+
+    \item LP pool 
+    
+    \[
+    Y_{ij}^k = \sqrt[p]{\sum_{s \in S{ij}^k} (X^k[s])^p}
+    \]
+
+\end{enumerate}
+
+\subsection*{Part C}
+
+\[
+C =  
+\begin{tabular}{|c|c|c|} \hline
+       109 & 92 & 72 \\ \hline 
+       108 & 85 & 74 \\ \hline
+       110 & 74 & 79 \\ \hline 
+    \end{tabular}
+\]
+
+Applying max pooling with kernel size 2 and stride 1 on C we get 
+
+\[
+    \begin{tabular}{|c|c|} 
+    \hline
+       109 & 92 \\ \hline 
+       110 & 85 \\ \hline
+    \end{tabular}\hspace{1cm}
+\]
+
+\subsection*{Part D}
+Max pooling and Average pooling can be expressed in terms of LP pooling. \\
+
+\[
+f(x) = \sqrt[p]{\sum_{x \in X} x^p}
+\]
+
+At $p=\infty$, one gets max pooling.\\
+At $p=1$, one gets sum pooling, which is proportional to average pooling. \\
+
+
+\section*{Links}
+
+\begin{itemize}
+    \item \href{https://www.overleaf.com/project/5c799fbd9a370b5cee54dc67}{Read only link to Overleaf Project}
+\end{itemize}
+
+\end{document}
