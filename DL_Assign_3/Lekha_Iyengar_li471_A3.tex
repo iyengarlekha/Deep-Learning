@@ -1,0 +1,61 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{DS-GA 1008: Deep Learning, Spring 2019
+Homework Assignment 3}
+\author{Lekha Iyengar}
+\date{March 2019}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+% \usepackage[nottoc]{tocbibind}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+}
+
+\begin{document}
+
+\maketitle
+
+\section*{1.1 - Dropout}
+
+\subsection*{a. List the torch.nn module corresponding to 2D dropout.
+}
+
+Dropout2d is the torch.nn module corresponding to dropout. Its parameters are the dropout probability ‘p’ and ‘inplace’.
+p is the probability of an element to be zero-ed.
+If inplace is set to True, the dropout operation is done inplace.
+
+\subsection*{b. Read on what dropout is and give a short explanation on what it does and why
+it is useful.}
+Dropout is a regularization technique which is used to prevent overfitting. The technique involves temporarily dropping nodes (hidden and input) along with all its incoming and outgoing connections. A node at training time is present with probability p (dropped with probability 1-p). For the input nodes, however, the optimal probability of retention is usually closer to 1 At test time, the node is always present and the weights are multiplied by p.\\
+During training, dropout uses several reduced networks. This prevents the nodes from co-adapting too much. This model combination also improves the performance of the network. "Although dropout alone gives significant improvements, using dropout along with max-norm regularization, large decaying learning rates and high momentum provides a significant boost over just using dropout. A possible justification is that constraining weight vectors to lie inside a ball of fixed radius makes it possible to use a huge learning rate without the possibility of weights blowing up. As the learning rate decays, the optimization takes shorter steps, thereby doing less exploration and eventually settles into a minimum."
+ \citep{Dropout}
+
+\section*{1.2 - Batch Norm}
+\subsection*{a. What does mini-batch refer to in the context of deep learning?}
+Usually the total amount of training data available is quite large. It is computationally expensive to use the entire batch at each step to train the algorithm. We prefer to use a small number of training instances which constitute a mini-batch in one iteration. Training over a mini-batch constitutes an iterator and training over all the mini batches constitutes an epoch.
+
+
+\subsection*{b. Read on what batch norm is and give a short explanation on what it does and
+why it is useful.}
+The distribution of each layer’s inputs changes during training, as the parameters of the previous layers change. To avoid this problem we need to use smaller learning rates and carefully initialize parameters. This slows down the training. Networks converge faster if the inputs have been whitened (zero mean, unit variances) and are uncorrelated \cite{Efficient_BackProp} \cite{NIPS2011_4421}. Batch normalization reduces the dependence of gradients on the scale of the parameters or on their initial values (reduces internal covariate shift) by fixing the means and variances of layer inputs. This allows us to use much higher learning rates without the risk of divergence. It also allows each layer to learn independently of other layers.It also acts as a regularizer, in some cases eliminating the need for Dropout.
+It normalizes the output of previous activation layer by subtracting the batch mean and dividing by the batch standard deviation. The gradient descent algorithm does the denormalization if required (to minimize loss function) by changing only these two weights for each activation, instead of losing the stability of the network by changing all the weights.
+
+
+\section*{Links}
+
+\begin{itemize}
+    \item \href{https://www.overleaf.com/read/rpbsgtxdycmx}{Read only link to Overleaf Project}
+\end{itemize}
+
+\bibliographystyle{unsrt}
+\bibliography{ref}
+
+\end{document}
