@@ -6,11 +6,28 @@ Homework Assignment 3}
 \author{Lekha Iyengar}
 \date{March 2019}
 
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
 \usepackage{natbib}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{hyperref}
+\usepackage{lastpage}
+\usepackage{enumerate}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
 % \usepackage[nottoc]{tocbibind}
+
+\definecolor{yellow-c}{RGB}{199,192,22}
+\definecolor{red-c}{RGB}{238,109,102}
+\definecolor{blue-c}{RGB}{102,161,238}
+\definecolor{green-c}{RGB}{102,161,120}
+\definecolor{brown-c}{RGB}{199,111,22}
 
 \hypersetup{
     colorlinks=true,
@@ -48,9 +65,183 @@ why it is useful.}
 The distribution of each layer’s inputs changes during training, as the parameters of the previous layers change. To avoid this problem we need to use smaller learning rates and carefully initialize parameters. This slows down the training. Networks converge faster if the inputs have been whitened (zero mean, unit variances) and are uncorrelated \cite{Efficient_BackProp} \cite{NIPS2011_4421}. Batch normalization reduces the dependence of gradients on the scale of the parameters or on their initial values (reduces internal covariate shift) by fixing the means and variances of layer inputs. This allows us to use much higher learning rates without the risk of divergence. It also allows each layer to learn independently of other layers.It also acts as a regularizer, in some cases eliminating the need for Dropout.
 It normalizes the output of previous activation layer by subtracting the batch mean and dividing by the batch standard deviation. The gradient descent algorithm does the denormalization if required (to minimize loss function) by changing only these two weights for each activation, instead of losing the stability of the network by changing all the weights.
 
+\section*{2 - Language Modelling}
+\subsection*{a. Go through the code and draw a block diagram / flow chart which highlights the main interacting components, illustrates their functionality, and provides
+an estimate of their computational time percentage}
 
+        \tikzstyle{start} = [circle, rounded corners, minimum width=1.5cm, minimum height=1.5cm,text width=1.4cm, text centered, draw=black, fill=yellow-c]
+        \tikzstyle{stop} = [rectangle, rounded corners, minimum width=1.5cm, minimum height=1.5cm,text width=2cm, text centered, draw=black, fill=brown-c]
+        \tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=2cm, minimum height=1cm, text centered, text width=5cm, draw=black, fill=red-c]
+        \tikzstyle{process} = [rectangle, minimum width=2cm, minimum height=1cm, text centered, text width=6cm, draw=black, fill=blue-c]
+        \tikzstyle{process1} = [rectangle, minimum width=0.7cm, minimum height=1cm, text centered, text width=1.5cm, draw=black, fill=blue-c]
+        \tikzstyle{decision} = [diamond, minimum width=2cm, minimum height=0.6cm, text centered, text width=4cm, draw=black, fill=green-c, aspect = 3]
+        \tikzstyle{decision1} = [diamond, minimum width=0.5cm, minimum height=0.5cm, text centered, text width=2.2cm, draw=black, fill=green-c, aspect = 3]
+        \tikzstyle{arrow} = [thick,->,>=stealth]
+       
+        \begin{center}
+            \begin{tikzpicture}[node distance=1.5cm]
+                \node (start) [start] {Start};
+                \node (in1) [io, below of=start, yshift = -1cm] {\textbf{batchify()} \textit{- Arranges sequential data into columns. These columns are treated as independent by the model}};
+                \node (in2) [process, below of=in1, yshift = -2cm] {\textbf{Build RNN Model -} \textit{Use input parameters like mode type (RNN,GRU or LSTM), number of tokens, number of tokens, size of embedding, number of units in each hidden layer, number of layers, dropout and weight tying build the RNN model and copy it to device (GPU or CPU) }};
+                \node (in3) [process, below of=in2, yshift = -1.7cm] {\textbf{Train Model} \textit{Turns on training mode (Training loop in next flowchart)}};
+                \node (in4) [process, below of=in3, yshift = -0.3cm] {\textbf{Validation Loss} \textit{Evaluate on validation data}};
+                \node (in5) [decision, below of=in4, yshift = -1.0cm] {\textbf{Validation Loss $<$ Best} \textit{}};
+                \node (in6) [decision1, left of=in5, xshift=-4.2cm] {Save Model};
+                \node (in7) [decision1, right of=in5, xshift=5cm] {Anneal\\ Learning Rate};
+                \node (in8) [process, below of=in5, yshift = -0.8cm] {\textbf{Test Loss} \textit{Load the best model and evaluate it on test data}};
+                \draw [arrow] (start) -- (in1);
+                \draw [arrow] (in1) -- (in2);
+                \draw [arrow] (in2) -- (in3);
+                \draw [arrow] (in3) -- (in4);
+                \draw [arrow] (in4) -- (in5);
+                \draw [arrow] (in5) -- node[anchor=south] {yes} (in6);
+                \draw [arrow] (in5) -- node[anchor=south] {no} (in7);
+                \draw [arrow] (in7) |- node[anchor=north] {epochs complete} (in8);
+                \draw [arrow] (in6) |- node[anchor=north] {epochs complete} (in8);
+                \draw [arrow] (in7) |- node[anchor=south] {epochs left} (in3);
+                \draw [arrow] (in6) |- node[anchor=south] {epochs left} (in3);
+            \end{tikzpicture}
+        \end{center}
+        
+         \begin{center}
+            \begin{tikzpicture}[node distance=1cm]
+                \node (start) [start] {Train};
+                \node (in1) [process, below of=start, yshift = -1.1cm] {\textbf{model.init\_hidden\(\)} \textit{Initialize weights of hidden layers}};
+                \node (in2) [process, below of=in1, yshift = -0.9cm] {\textbf{get\_batch} \textit{Divide source data into chunks of size equal to the BPTT temporal interval}};
+                \node (in3) [process, below of=in2, yshift = -1.2cm] {\textbf{repackage\_hidden} \textit{Detach hidden states from their history by repackaging them in new tensors}};
+                \node (in4) [process, below of=in3, yshift = -1cm] {\textbf{zero\_grad} \textit{Set the gradients to zero before doing backpropragation}};
+                \node (in5) [process, below of=in4, yshift = -0.8cm] {\textbf{Instantiate model} \textit{Forward pass for current batch}};
+                
+                \node (in6) [process, below of=in5, yshift = -1.2cm] {\textbf{Backward Pass} \textit{Calculate the loss and computational graph for BPTT based on the loss criterion and backward propagate the weights.}};
+                \node (in7) [decision1, right of=in6, xshift=6cm] {Continue Training};
+                \node (stop) [stop, below of = in6, yshift = -1.5cm] {End training};
+                \draw [arrow] (start) -- (in1);
+                \draw [arrow] (in1) -- (in2);
+                \draw [arrow] (in2) -- (in3);
+                \draw [arrow] (in3) -- (in4);
+                \draw [arrow] (in4) -- (in5);
+                \draw [arrow] (in5) -- (in6);
+                \draw [arrow] (in6) -- (in7);
+                \draw [arrow] (in7) |- node[anchor=south] {Batches Left} (in2);
+                \draw [arrow] (in7) |- node[anchor=north] {Batches complete}(stop);
+            \end{tikzpicture}
+        \end{center}
+        
+        \begin{center}
+            \begin{tikzpicture}[node distance=1cm]
+                \node (start) [start] {Evaluate};
+                \node (in1) [process, below of=start, yshift = -1cm] {\textbf{Initialize Hidden} \textit{Initialize weight of hidden layer}};
+                \node (in2) [process, below of=in1, yshift = -0.8cm] {\textbf{get\_batch} \textit{Subdivide the dource data into chunks along dimension 0}};
+                \node (in3) [process, below of=in2, yshift = -1.2cm] {\textbf{repackage\_hidden} \textit{We need to detatch hidden states from their history and for that we repackage them into new tensors}};
+                \node (in4) [decision1, right of=in3, xshift=5cm] {Continue Test};
+                \node (stop) [stop, below of = in3, yshift = -1.6cm] {End evaluation};
+                \draw [arrow] (start) -- (in1);
+                \draw [arrow] (in1) -- (in2);
+                \draw [arrow] (in2) -- (in3);
+                \draw [arrow] (in3) -- (in4);
+                \draw [arrow] (in4) |- node[anchor=south] {Test data Left} (in2);
+                \draw [arrow] (in4) |- node[anchor=north] {Test data complete}(stop);
+            \end{tikzpicture}
+        \end{center}
+\vspace{7pt}
+        \begin{tabular}{cc}
+        \hline Function & Time Percentage\\
+        \hline
+        batchify & 1.2\\
+        get\_batch & 0.27\\
+        test set evaluation &0.68\\
+        validation time &4.76\\
+        training loop time &91.32\\
+        \hline
+        \end{tabular}
+\vspace{7pt}
+        
+\subsection*{b. Find and explain where and how the back-propagation through time (BPTT) takes
+place}
+Backpropagation through time takes place in loss.backward()which is called in the training loop.
+
+Backpropagation Through Time, or BPTT, is the training algorithm used to update weights in recurrent neural networks like LSTMs. BPTT works by unrolling all input time-steps. Each time-step has one input time-step, one copy of the network, and one output. Errors are then calculated and accumulated for each time-step. The network is rolled back up and the weights are updated. Spatially, each time-step of the unrolled recurrent neural network may be seen as an additional layer given the order dependence of the problem and the internal state from the previous time-step is taken as an input on the subsequent time-step.(\href{https://machinelearningmastery.com/gentle-introduction-backpropagation-time/}{Introduction to BPTT})\\
+BPTT comprises of following steps:\\
+1.Present a sequence of timesteps of input and output pairs to the network.\\
+2.Unroll the network then calculate and accumulate errors across each timestep.\\
+3.Roll-up the network and update weights.\\
+4.Repeat\\
+
+
+\subsection*{c. Describe why we need the repackage\_hidden function, and how it works.}
+
+The repackage\_hidden() function wraps hidden states in new variables, to detach them from their history. If we don't detach the hidden state, the model would try backpropagating all the way to start of the dataset.
+"Every variable has a .creator attribute that is an entry point to a graph, that encodes the operation history. This allows autograd to replay it and differentiate each operation. Each hidden state will have a reference to some graph node that has created it, but in BPTT, we don't want to backprop to it after finishing the sequence. To get rid of the reference, we have to take out the tensor containing the hidden state and wrap it in a fresh Variable, that has no history. This allows the previous graph to go out of scope and free up the memory for next iteration." (\href{https://discuss.pytorch.org/t/help-clarifying-repackage-hidden-in-word-language-model/226/2}{https://discuss.pytorch.org/repackage-hidden-in-word-language-model})
+
+\subsection*{d. Why is there a --tied (tie the word embedding and softmax weights) option?}
+ Tying the word embedding and the softmax weights, greatly reducing the number of trainable
+variables."\cite{Tie}"By tying the two embeddings together, the joint embedding evolves in a more similar way to the output embedding than to the input embedding of the untied model. Tying the input and output embeddings leads to an improvement in the perplexity of various language models.Weight tying
+in neural translation models can reduce their size (number of parameters) to less than half of their original size without harming their performance. Weight tying
+significantly reduces perplexity on both the validation set and the test set, but not on the training set. This indicates less overfitting, as expected
+due to the reduction in the number of parameters."\cite{Tying_embeddings}
+\subsection*{e. Compare LSTM and GRU performance (validation perplexity and training time) for different values of the following parameters: number of epochs, number of layers, hidden units size, input embedding dimensionality, BPTT temporal interval, and non-linearities (pick just 3 of these parameters and experiment with 2-3 different values for each).}
+
+\textbf{Experimenting with number of epochs:}
+\vspace{2pt} \\
+\begin{tabular}[h]{cccc}
+\hline Type &	Epochs & Validation perplexity & Training time\\
+\hline 
+LSTM	& 10	& 117.35	& 0:08:12\\
+LSTM	& 20	& 109.59	& 0:16:07\\
+LSTM	& 40	& 109.57	& 0:41:57\\
+GRU	& 10	& 167.5	& 0:08:06\\
+GRU	& 20	& 148.69 &	0:15:53\\
+GRU	& 40	& 134.87 &	0:31:18\\
+\hline
+\end{tabular}
+\vspace{4pt} \\
+
+LSTM performs better than GRU in this experiment. The perplexity decreases as number of epochs increase.
+
+
+\textbf{Experimenting with number of layers:}
+\vspace{3pt}\\
+\begin{tabular}[h]{cccc}
+\hline Type	& Nlayers	& Validation perplexity	& Training time\\
+\hline
+LSTM	& 10 &	910.63	& 1:33:51\\
+LSTM	&20	&109.57	&0:41:57\\
+LSTM	&30	&915.88	&4:25:14\\
+LSTM	&40	&915.15	&6:41:42\\
+GRU	&10	&927.35	&1:31:38\\
+GRU	&20	&134.87	&0:31:18\\
+GRU	&30	&914.85	&4:16:40\\
+GRU	&40	&914.17	&5:46:28\\
+\hline
+\end{tabular}
+\vspace{4pt} \\
+
+Perplexity and training time increases if number of layers is decreased to 10 or increased to 30 and 40. Best performance is observed for 20 layers for both LSTM and GRU. LSTM performs better than GRU but the training time is longer.\\
+
+\textbf{Experimenting with input embedding dimensionality:}
+\vspace{3pt} \\
+\begin{tabular}[h]{cccc}
+\hline Type &	Embedding size	&Validation perplexity	&Training time\\
+\hline
+LSTM	&100	&171.09	&0:30:39\\
+LSTM	&200	&109.57	&0:41:57\\
+LSTM	&400	&108.06	&0:34:53\\
+LSTM	&650	&109.85	&0:30:45\\
+GRU	    &100	&109.51	&0:30:59\\
+GRU	    &200	&134.87	&0:31:18\\
+GRU	    &400	&127.8	&0:28:49\\
+GRU	    &650	&205.45	&0:30:42\\
+\hline
+\end{tabular}
+\vspace{5pt} \\
+
+The training time does not vary much as the size of input embeddings is varied. The performance of GRU deteriorates as the embedding dimensionality is increased. The performance of LSTM improves 
+
+\subsection*{f.Why do we compute performance on a test set as well? What is this number good for?}
+
+Perplexity is the inverse probability of the test set, normalized by the number of words. Minimizing perplexity is the same as maximizing probability. Intrinsic evaluation metrics like perplexity are a bad approximation of performance of language model if the test set doesn't look like the training set. Computing the performance on test set helps us determine if the training and test set are similar and also validate if the model generalizes well.
+The validation set is used to estimate prediction error and the test set is used to assess the performance of a fully trained model.
 \section*{Links}
-
 \begin{itemize}
     \item \href{https://www.overleaf.com/read/rpbsgtxdycmx}{Read only link to Overleaf Project}
 \end{itemize}
